@@ -1,0 +1,38 @@
+diff --git a/node_modules/@distube/yt-dlp/dist/index.js b/node_modules/@distube/yt-dlp/dist/index.js
+index b17b126..cd2f7ae 100644
+--- a/node_modules/@distube/yt-dlp/dist/index.js
++++ b/node_modules/@distube/yt-dlp/dist/index.js
+@@ -73,16 +73,28 @@ var args = /* @__PURE__ */ __name((url, flags = {}) => [url].concat((0, import_d
+ var json = /* @__PURE__ */ __name((url, flags, options) => {
+   const process2 = (0, import_node_child_process.spawn)(YTDLP_PATH, args(url, flags), options);
+   return new Promise((resolve, reject) => {
+-    let output = "";
++    let stdout = "";
++    let stderr = "";
+     process2.stdout?.on("data", (chunk) => {
+-      output += chunk;
++      stdout += chunk;
+     });
+     process2.stderr?.on("data", (chunk) => {
+-      output += chunk;
++      stderr += chunk;
+     });
+     process2.on("close", (code) => {
+-      if (code === 0) resolve(JSON.parse(output));
+-      else reject(new Error(output));
++      if (code === 0) {
++        // Strip any non-JSON prefix (deprecation notices, warnings, etc.)
++        // that yt-dlp may output before the JSON payload.
++        const jsonStart = stdout.indexOf("{");
++        const jsonStr = jsonStart > 0 ? stdout.substring(jsonStart) : stdout;
++        try {
++          resolve(JSON.parse(jsonStr));
++        } catch (e) {
++          reject(new Error(`Failed to parse yt-dlp output: ${e.message}\nRaw stdout: ${stdout}\nStderr: ${stderr}`));
++        }
++      } else {
++        reject(new Error(stderr || stdout));
++      }
+     });
+     process2.on("error", reject);
+   });
