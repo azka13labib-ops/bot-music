@@ -28,6 +28,10 @@ const commands = [
           { name: 'Repeat Queue', value: 'queue' },
         )
     ),
+  new SlashCommandBuilder().setName('pause').setDescription('Jeda lagu yang sedang main'),
+  new SlashCommandBuilder().setName('resume').setDescription('Lanjutkan lagu yang di-jeda'),
+  new SlashCommandBuilder().setName('nowplaying').setDescription('Lihat info lagu yang sedang diputar'),
+  new SlashCommandBuilder().setName('leave').setDescription('Menyuruh bot keluar dari Voice Channel'),
 ].map(cmd => cmd.toJSON());
 
 const rest = new REST().setToken(process.env.TOKEN);
