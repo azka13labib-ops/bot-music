@@ -1,6 +1,4 @@
 require('dns').setDefaultResultOrder('ipv4first');
-
-// Fix untuk Node 18+ global fetch() yang menggunakan undici dan mengabaikan setting dns bawaan
 const undici = require('undici');
 undici.setGlobalDispatcher(new undici.Agent({ connect: { family: 4 } }));
 process.on('uncaughtException', (err) => {
@@ -14,7 +12,7 @@ console.log(generateDependencyReport());
 const { joinVoiceChannel } = require('@discordjs/voice');
 const { DisTube } = require('distube');
 const { YtDlpPlugin } = require('@distube/yt-dlp');
-const { CustomSpotifyPlugin } = require('./lib/spotifyResolver');
+const { CustomSpotifyPlugin, CustomSearchPlugin } = require('./lib/spotifyResolver');
 const { SoundCloudPlugin } = require('@distube/soundcloud');
 require('dotenv').config();
 
@@ -34,14 +32,19 @@ const distube = new DisTube(client, {
       global: {},
       input: {
         // Beri waktu FFmpeg lebih lama untuk menganalisis format audio
-        // agar tidak terjadi "Invalid data found" error saat decode AAC
         probesize: 5000000,
         analyzeduration: 5000000,
+        // Tambahkan reconnect flag dan User-Agent agar stream YouTube tidak putus/crash
+        reconnect: 1,
+        reconnect_streamed: 1,
+        reconnect_delay_max: 5,
+        user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
       },
       output: {}
     }
   },
   plugins: [
+    new CustomSearchPlugin(),
     new CustomSpotifyPlugin(),
     new YtDlpPlugin({ update: true })
   ]
