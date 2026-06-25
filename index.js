@@ -1,4 +1,9 @@
 require('dns').setDefaultResultOrder('ipv4first');
+const keepAlive = require('./keepalive');
+
+// Nyalakan dummy web server untuk HuggingFace Spaces
+keepAlive();
+
 const undici = require('undici');
 undici.setGlobalDispatcher(new undici.Agent({ connect: { family: 4 } }));
 process.on('uncaughtException', (err) => {
