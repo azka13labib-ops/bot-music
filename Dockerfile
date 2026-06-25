@@ -27,6 +27,9 @@ WORKDIR /app
 # Copy package.json duluan (untuk cache layer Docker)
 COPY package*.json ./
 
+# Copy folder patches SEBELUM npm install supaya postinstall jalan!
+COPY patches ./patches/
+
 # Install npm dependencies
 RUN npm install
 
