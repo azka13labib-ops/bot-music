@@ -28,7 +28,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install npm dependencies
-RUN npm install --production
+RUN npm install
 
 # Copy semua sisa file bot
 COPY . .
