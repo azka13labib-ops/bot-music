@@ -103,6 +103,13 @@ client.once('ready', () => {
   console.log(`✅ Bot online sebagai ${client.user.tag}`);
 });
 
+// Client debug listener to troubleshoot connection details
+client.on('debug', (log) => {
+  if (log.includes('voice') || log.includes('Voice') || log.includes('Gateway') || log.includes('SESSION_Description') || log.includes('sessionDescription')) {
+    console.log(`[Discord.js Debug] ${log}`);
+  }
+});
+
 // Slash commands
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
@@ -126,6 +133,19 @@ client.on('interactionCreate', async (interaction) => {
         // tapi jika masih ada plugin lain yang butuh interception bisa ditaruh di sini
       }
 
+      // Pastikan membersihkan koneksi lama jika bot 'nyangkut' di guild ini
+      try {
+        console.log(`[Voice Debug] Memeriksa koneksi lama di guild ${interaction.guildId}`);
+        const existingConnection = distube.voices.get(interaction.guildId);
+        if (existingConnection) {
+          console.log(`[Voice Debug] Menghapus koneksi lama di guild ${interaction.guildId}`);
+          existingConnection.leave();
+        }
+      } catch (err) {
+        console.error('[Voice Debug] Gagal membersihkan koneksi lama:', err);
+      }
+
+      console.log(`[Voice Debug] Memanggil distube.play di channel ${voiceChannel.id}`);
       await distube.play(voiceChannel, playTarget, {
         textChannel: interaction.channel,
         member: interaction.member,
