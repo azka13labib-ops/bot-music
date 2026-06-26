@@ -1,11 +1,19 @@
 require('dns').setDefaultResultOrder('ipv4first');
+require('dotenv').config();
 const keepAlive = require('./keepalive');
 
 // Nyalakan dummy web server untuk HuggingFace Spaces
 keepAlive();
 
 const undici = require('undici');
-undici.setGlobalDispatcher(new undici.Agent({ connect: { family: 4 } }));
+undici.setGlobalDispatcher(new undici.Agent({ 
+  connect: { 
+    family: 4,
+    timeout: 60000   // 60 detik (default hanya 10 detik)
+  },
+  keepAliveTimeout: 60000,
+  keepAliveMaxTimeout: 120000
+}));
 process.on('uncaughtException', (err) => {
   console.error('🔴 UNCAUGHT EXCEPTION:', err);
 });
@@ -19,9 +27,10 @@ const { DisTube } = require('distube');
 const { YtDlpPlugin } = require('@distube/yt-dlp');
 const { CustomSpotifyPlugin, CustomSearchPlugin } = require('./lib/spotifyResolver');
 const { SoundCloudPlugin } = require('@distube/soundcloud');
-require('dotenv').config();
+
 
 const client = new Client({
+  rest: { timeout: 60000 },
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildVoiceStates,
@@ -103,7 +112,8 @@ client.on('interactionCreate', async (interaction) => {
   if (commandName === 'play') {
     await interaction.deferReply();
     const query = interaction.options.getString('query');
-    const voiceChannel = interaction.member.voice.channel;
+    const member = await interaction.guild.members.fetch(interaction.user.id);
+    const voiceChannel = member.voice?.channel;
     if (!voiceChannel) return interaction.editReply('Masuk ke voice channel dulu ya!');
 
     try {
@@ -206,7 +216,28 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-client.login(process.env.TOKEN);
+console.log('[DEBUG] TOKEN length:', process.env.TOKEN ? process.env.TOKEN.length : 'UNDEFINED');
+
+async function loginWithRetry(token) {
+  const delays = [3000, 5000, 10000, 15000, 30000];
+  for (let i = 0; i <= delays.length; i++) {
+    try {
+      console.log(`[Login] Mencoba login ke Discord... (percobaan ${i + 1})`);
+      await client.login(token);
+      console.log('[Login] ✅ Berhasil terhubung ke Discord!');
+      return;
+    } catch (err) {
+      console.error(`[Login] ❌ Gagal percobaan ${i + 1}:`, err.code || err.message);
+      if (i < delays.length) {
+        console.log(`[Login] 🔄 Retry dalam ${delays[i] / 1000} detik...`);
+        await new Promise(r => setTimeout(r, delays[i]));
+      } else {
+        console.error('[Login] 💀 Semua percobaan gagal. Bot tidak dapat terhubung ke Discord dari HuggingFace.');
+      }
+    }
+  }
+}
+loginWithRetry(process.env.TOKEN);
 
 // Anti-crash system
 process.on('unhandledRejection', (reason, promise) => {

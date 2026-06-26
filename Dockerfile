@@ -4,7 +4,7 @@
 # ============================================
 
 # Base image Node.js 18 (LTS, stabil)
-FROM node:18-bullseye-slim
+FROM node:20-bullseye-slim
 
 # Install dependensi sistem yang dibutuhkan DisTube:
 # - ffmpeg     : untuk memproses audio
@@ -30,11 +30,15 @@ COPY package*.json ./
 # Copy folder patches SEBELUM npm install supaya postinstall jalan!
 COPY patches ./patches/
 
-# Install npm dependencies
-RUN npm install
+# Install npm dependencies (skip postinstall agar @distube/yt-dlp tidak error)
+# lalu jalankan patch-package secara manual
+RUN npm install --ignore-scripts && npx patch-package
 
 # Copy semua sisa file bot
 COPY . .
+
+# Arahkan @distube/yt-dlp ke binary yt-dlp yang sudah diinstall via pip
+ENV YTDLP_PATH=/usr/local/bin/yt-dlp
 
 # Expose port 7860 (WAJIB untuk HuggingFace Spaces)
 EXPOSE 7860
